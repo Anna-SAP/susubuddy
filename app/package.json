@@ -47,7 +47,6 @@
     },
     "mac": {
       "target": [
-        { "target": "dmg", "arch": ["x64", "arm64"] },
         { "target": "zip", "arch": ["x64", "arm64"] }
       ],
       "icon": "build/icon.png",
@@ -55,10 +54,6 @@
       "identity": null,
       "hardenedRuntime": false,
       "gatekeeperAssess": false
-    },
-    "dmg": {
-      "title": "susubuddy",
-      "writeUpdateInfo": false
     }
   }
 }
