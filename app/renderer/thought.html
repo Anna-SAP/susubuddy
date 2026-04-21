@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self';">
+<title>quick thought</title>
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; width: 100%; height: 100%; overflow: hidden;
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif; color: #3A2A24;
+    -webkit-user-select: none; user-select: none; }
+  #root { width: 100%; height: 100%; padding: 8px; box-sizing: border-box; }
+  textarea { -webkit-user-select: text; user-select: text; }
+  @keyframes mochi-breathe { 0%,100% { transform: scaleX(1) scaleY(1); } 50% { transform: scaleX(1.03) scaleY(0.97); } }
+  @keyframes mochi-bounce  { 0%,100% { transform: translateY(0) scaleX(1) scaleY(1); } 30% { transform: translateY(-6px) scaleX(0.96) scaleY(1.04); } 60% { transform: translateY(0) scaleX(1.05) scaleY(0.95); } }
+</style>
+<script src="vendor/react.production.min.js"></script>
+<script src="vendor/react-dom.production.min.js"></script>
+<script src="vendor/babel.min.js"></script>
+<script type="text/babel" src="components.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+function ThoughtApp() {
+  const [text, setText] = React.useState('');
+  const [tags, setTags] = React.useState(['#idea']);
+  const [savedFlash, setSavedFlash] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const ref = React.useRef(null);
+
+  React.useEffect(() => { ref.current?.focus(); }, []);
+
+  const now = new Date();
+  const stamp = now.toLocaleString('en-US', { weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
+
+  const save = async () => {
+    const t = text.trim();
+    if (!t || saving) return;
+    setSaving(true);
+    const res = await window.susu.addNote(t, tags);
+    setSaving(false);
+    if (res && res.ok) {
+      setSavedFlash(true);
+      setText('');
+      setTimeout(() => window.susu.closeWindow(), 700);
+    }
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); window.susu.closeWindow(); }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); save(); }
+  };
+
+  const toggleTag = (t) => setTags((s) => s.includes(t) ? s.filter((x) => x !== t) : [...s, t]);
+  const TAG_CHOICES = ['#idea', '#susu', '#design', '#reading', '#life'];
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: '#FFFDF9',
+      borderRadius: 16,
+      boxShadow: '0 12px 36px rgba(74, 58, 50, 0.22), 0 2px 6px rgba(74,58,50,0.08)',
+      border: '1px solid rgba(74,58,50,0.10)',
+      padding: '14px 16px 12px',
+      display: 'flex', flexDirection: 'column',
+      position: 'relative',
+    }} onKeyDown={onKeyDown}>
+      {/* drag handle */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 16, WebkitAppRegion: 'drag' }} />
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 14 }}>💭</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#6B5147' }}>a little thought…</span>
+        </div>
+        <span style={{ fontFamily: 'Consolas, monospace', fontSize: 10, color: '#9E867A', letterSpacing: 0.3 }}>{stamp}</span>
+      </div>
+
+      <textarea
+        ref={ref}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="what's on your mind?"
+        disabled={saving}
+        style={{
+          width: '100%', flex: 1, resize: 'none', border: 'none', outline: 'none',
+          fontFamily: 'inherit', fontSize: 14, lineHeight: 1.55,
+          color: '#3A2A24', background: 'transparent', padding: '4px 0',
+        }}
+      />
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 4, marginBottom: 6 }}>
+        {TAG_CHOICES.map((t) => {
+          const on = tags.includes(t);
+          return (
+            <button key={t} onClick={() => toggleTag(t)} style={{
+              fontSize: 11, fontWeight: 700, padding: '2px 8px',
+              background: on ? '#FFE3D0' : 'transparent',
+              color: on ? '#E8916B' : '#9E867A',
+              border: `1px solid ${on ? '#E8916B' : 'rgba(74,58,50,0.12)'}`,
+              borderRadius: 10, cursor: 'pointer',
+            }}>{t}</button>
+          );
+        })}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, paddingTop: 8, borderTop: '1px dashed rgba(74,58,50,0.10)' }}>
+        <span style={{ fontSize: 11, color: '#9E867A', fontFamily: 'Consolas, monospace' }}>
+          {savedFlash ? '✓ saved ✨' : 'Ctrl/⌘ + ↵  save   ·   Esc  close'}
+        </span>
+        <button onClick={save} disabled={!text.trim() || saving} style={{
+          border: 'none', background: text.trim() ? '#E8916B' : 'rgba(232,145,107,0.4)',
+          color: '#fff', padding: '6px 14px', borderRadius: 12, fontWeight: 700, fontSize: 13,
+          cursor: text.trim() ? 'pointer' : 'default',
+          boxShadow: '0 2px 0 rgba(161,84,49,0.35)',
+        }}>save ✨</button>
+      </div>
+    </div>
+  );
+}
+
+const t = setInterval(() => {
+  if (typeof Mochi !== 'undefined') {
+    clearInterval(t);
+    ReactDOM.createRoot(document.getElementById('root')).render(<ThoughtApp />);
+  }
+}, 30);
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# electron-builder output
+app/dist/
+app/release/
+dist/
+release/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python (icon generator)
+__pycache__/
+*.pyc
+
+# Handoff bundle source (keep only the implemented app + design HTML)
+# susubuddy/  # keep the design-spec folder tracked so the workflow can regenerate assets if needed

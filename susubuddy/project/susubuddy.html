@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>susubuddy — design exploration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; }
+  body { font-family: 'Nunito', -apple-system, system-ui, sans-serif; color: #3A2A24; }
+  * { box-sizing: border-box; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="components/design-canvas.jsx"></script>
+<script type="text/babel" src="components/mochi.jsx"></script>
+<script type="text/babel" src="components/desktop.jsx"></script>
+<script type="text/babel" src="components/ui.jsx"></script>
+<script type="text/babel" src="components/timeline.jsx"></script>
+<script type="text/babel" src="components/prototype.jsx"></script>
+
+<script type="text/babel">
+// ─────────────────────────────────────────────────────────────
+// Tweakable defaults — persisted to disk
+// ─────────────────────────────────────────────────────────────
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "palette": "lilac",
+  "buddySize": 96
+}/*EDITMODE-END*/;
+
+// ─────────────────────────────────────────────────────────────
+// Mood grid — all 8 moods on show
+// ─────────────────────────────────────────────────────────────
+const MOOD_NOTES = {
+  idle: { label: 'idle', sub: 'gentle breathing · occasional blink', bg: '#FFFDF9' },
+  blink: { label: 'blink', sub: 'a quiet hello every few seconds', bg: '#FFFDF9' },
+  sleepy: { label: 'sleepy', sub: 'after 5 min of inactivity', bg: '#F3EDE0' },
+  happy: { label: 'happy', sub: 'you hovered · nice to see you', bg: '#FFF1E2' },
+  focused: { label: 'focused', sub: 'busy reading your screen', bg: '#FFEAD3' },
+  grumpy: { label: 'grumpy', sub: 'you declined the save — fair', bg: '#FFE3DB' },
+  excited: { label: 'excited', sub: 'you opened inspiration mode ✨', bg: '#FFE6EA' },
+  celebrating: { label: 'celebrating', sub: 'saved! streak kept!', bg: '#FFE6EA' },
+};
+
+function MoodCard({ mood, palette, size = 120 }) {
+  const n = MOOD_NOTES[mood];
+  return (
+    <div style={{
+      width: 220, height: 260, padding: 16,
+      background: n.bg,
+      borderRadius: 18,
+      border: '1px solid rgba(74, 58, 50, 0.08)',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'space-between',
+      position: 'relative',
+    }}>
+      <div style={{
+        position: 'absolute', top: 12, left: 14,
+        fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#9E867A',
+        letterSpacing: 0.5,
+      }}>// {String(Object.keys(MOOD_NOTES).indexOf(mood) + 1).padStart(2,'0')}</div>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Mochi mood={mood} palette={palette} size={size} />
+      </div>
+      <div style={{ textAlign: 'center', width: '100%' }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: '#3A2A24', marginBottom: 2 }}>{n.label}</div>
+        <div style={{ fontSize: 11.5, color: '#6B5147', lineHeight: 1.3 }}>{n.sub}</div>
+      </div>
+    </div>
+  );
+}
+
+function MoodStrip({ palette }) {
+  const ordered = ['idle', 'blink', 'happy', 'focused', 'excited', 'celebrating', 'sleepy', 'grumpy'];
+  return (
+    <div style={{
+      width: 1840, height: 620, padding: '32px 40px',
+      display: 'flex', flexDirection: 'column',
+      background: '#FDF6EE',
+    }}>
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: 22, fontWeight: 800, color: '#3A2A24' }}>meet susubuddy</div>
+        <div style={{ fontSize: 13.5, color: '#6B5147' }}>a soft mochi blob. limbless. large-eyed. eight expressive states.</div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, flex: 1 }}>
+        {ordered.map((m) => <MoodCard key={m} mood={m} palette={palette} />)}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Palette swatches
+// ─────────────────────────────────────────────────────────────
+function PaletteCard({ name, pal }) {
+  return (
+    <div style={{ width: 300, height: 420, padding: 20, background: '#FFFDF9', borderRadius: 16, border: '1px solid rgba(74,58,50,0.08)',
+      display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <Mochi mood="happy" palette={name} size={120} />
+      </div>
+      <div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: '#3A2A24' }}>{name}</div>
+        <div style={{ fontSize: 11, color: '#9E867A', fontFamily: 'JetBrains Mono, monospace' }}>palette / {name}</div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 6 }}>
+        {['body','bodyDeep','highlight','cheek','mouth'].map((k) => (
+          <div key={k} style={{ textAlign: 'center' }}>
+            <div style={{ width: '100%', aspectRatio: '1', borderRadius: 8, background: pal[k], border: '1px solid rgba(74,58,50,0.08)' }} />
+            <div style={{ fontSize: 9, color: '#9E867A', fontFamily: 'JetBrains Mono, monospace', marginTop: 3 }}>{k}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PaletteStrip() {
+  const names = Object.keys(MOCHI_PALETTES);
+  return (
+    <div style={{ width: 1320, height: 500, padding: '32px 40px', background: '#F9F2E5',
+      display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: 22, fontWeight: 800, color: '#3A2A24' }}>species / fur colorway</div>
+        <div style={{ fontSize: 13.5, color: '#6B5147' }}>same geometry, different warm-pastel hue family. all within oklch(~0.86, ~0.08)</div>
+      </div>
+      <div style={{ display: 'flex', gap: 20, flex: 1 }}>
+        {names.map((n) => <PaletteCard key={n} name={n} pal={MOCHI_PALETTES[n]} />)}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Static capture-flow storyboard (5 frames side-by-side)
+// ─────────────────────────────────────────────────────────────
+function FlowFrame({ n, label, children, w = 400, h = 300 }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#9E867A', fontWeight: 700 }}>
+          {String(n).padStart(2,'0')}
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#3A2A24' }}>{label}</span>
+      </div>
+      <div style={{ width: w, height: h, background: '#fff', borderRadius: 10,
+        border: '1px solid rgba(74,58,50,0.10)', overflow: 'hidden', position: 'relative',
+        boxShadow: '0 2px 8px rgba(74,58,50,0.08)' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function CaptureFlow({ palette }) {
+  const frameW = 400, frameH = 300;
+  return (
+    <div style={{ width: 2180, height: 500, padding: '32px 40px', background: '#FDF6EE',
+      display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: 22, fontWeight: 800, color: '#3A2A24' }}>capture flow · screen → OCR → markdown</div>
+        <div style={{ fontSize: 13.5, color: '#6B5147' }}>click buddy → drag rectangle → OCR runs → auto-formatted markdown on your clipboard</div>
+      </div>
+      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+        <FlowFrame n={1} label="at rest">
+          <MiniDesktop palette={palette} state="idle" />
+        </FlowFrame>
+        <FlowFrame n={2} label="tap opens menu">
+          <MiniDesktop palette={palette} state="menu" />
+        </FlowFrame>
+        <FlowFrame n={3} label="drag the area">
+          <MiniDesktop palette={palette} state="capturing" />
+        </FlowFrame>
+        <FlowFrame n={4} label="buddy reads it">
+          <MiniDesktop palette={palette} state="processing" />
+        </FlowFrame>
+        <FlowFrame n={5} label="markdown ready">
+          <MiniDesktop palette={palette} state="done" />
+        </FlowFrame>
+      </div>
+    </div>
+  );
+}
+
+// A scaled-down desktop frame for the storyboard — simplified
+function MiniDesktop({ palette, state }) {
+  const moods = { idle: 'idle', menu: 'happy', capturing: 'focused', processing: 'focused', done: 'celebrating' };
+  return (
+    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+      <DesktopBg />
+      {/* simplified browser */}
+      <div style={{ position: 'absolute', top: 20, left: 40, right: 40, bottom: 60,
+        background: '#FFFDF9', borderRadius: 6, border: '1px solid rgba(74,58,50,0.08)',
+        opacity: state === 'capturing' ? 0.8 : 1 }}>
+        <div style={{ height: 16, background: '#F5EADA', borderRadius: '6px 6px 0 0' }} />
+        <div style={{ padding: '12px 14px' }}>
+          <div style={{ height: 8, width: '60%', background: 'rgba(74,58,50,0.25)', borderRadius: 4, marginBottom: 8 }} />
+          {[90, 84, 88, 70, 85, 60].map((w,i) => (
+            <div key={i} style={{ height: 5, width: `${w}%`, background: 'rgba(74,58,50,0.12)', borderRadius: 3, marginBottom: 5 }} />
+          ))}
+        </div>
+      </div>
+      {state === 'capturing' && (
+        <div style={{
+          position: 'absolute', top: 48, left: 68, width: 240, height: 120,
+          border: '2px dashed #E8916B', background: 'rgba(255,216,181,0.1)',
+        }}>
+          <div style={{ position: 'absolute', top: -20, left: 0, padding: '2px 6px',
+            fontSize: 9, background: '#E8916B', color: '#fff', borderRadius: 4, fontFamily: 'JetBrains Mono, monospace' }}>
+            240 × 120
+          </div>
+        </div>
+      )}
+      {state === 'processing' && (
+        <div style={{ position: 'absolute', right: 20, bottom: 80, width: 140,
+          background: '#FFFDF9', borderRadius: 10, padding: '8px 10px',
+          border: '1px solid rgba(74,58,50,0.10)', fontSize: 10, fontWeight: 700, color: '#3A2A24' }}>
+          <div style={{ marginBottom: 5 }}>reading…</div>
+          <div style={{ height: 3, background: '#F5EADA', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: '62%', background: '#E8916B' }} />
+          </div>
+        </div>
+      )}
+      {state === 'done' && (
+        <div style={{ position: 'absolute', right: 20, bottom: 80, width: 160,
+          background: '#FFFDF9', borderRadius: 10, padding: '8px 10px',
+          border: '1px solid rgba(74,58,50,0.10)', fontSize: 9.5, color: '#3A2A24' }}>
+          <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 10 }}>✨ copied · got it!</div>
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', color: '#6B5147', fontSize: 9, lineHeight: 1.35 }}>
+            # GlobalProtect<br/>- windows agent<br/>- mac agent<br/>- Okta auth
+          </div>
+        </div>
+      )}
+      {state === 'menu' && (
+        <div style={{ position: 'absolute', right: 16, bottom: 74, width: 130,
+          background: '#FFFDF9', borderRadius: 10, padding: 4,
+          border: '1px solid rgba(74,58,50,0.10)' }}>
+          {['✨ capture','💭 quick note','📚 archive'].map((l,i) => (
+            <div key={i} style={{ fontSize: 10, padding: '4px 6px', color: '#3A2A24', fontWeight: 600 }}>{l}</div>
+          ))}
+        </div>
+      )}
+      {/* taskbar */}
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 16,
+        background: 'rgba(253,246,238,0.85)', borderTop: '1px solid rgba(74,58,50,0.08)' }} />
+      {/* buddy */}
+      <div style={{ position: 'absolute', right: 10, bottom: 20 }}>
+        <Mochi mood={moods[state]} palette={palette} size={44} />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Inspiration flow — 3 frames
+// ─────────────────────────────────────────────────────────────
+function InspirationFlow({ palette }) {
+  return (
+    <div style={{ width: 1360, height: 500, padding: '32px 40px', background: '#F9F2E5',
+      display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: 22, fontWeight: 800, color: '#3A2A24' }}>inspiration · speech-bubble panel</div>
+        <div style={{ fontSize: 13.5, color: '#6B5147' }}>⌘⇧N, or right-click the buddy. pops like a thought bubble; vanishes when you're done.</div>
+      </div>
+      <div style={{ display: 'flex', gap: 20 }}>
+        <FlowFrame n={1} label="empty — waiting" w={380} h={340}>
+          <MiniInspiration palette={palette} stage="empty" />
+        </FlowFrame>
+        <FlowFrame n={2} label="writing" w={380} h={340}>
+          <MiniInspiration palette={palette} stage="writing" />
+        </FlowFrame>
+        <FlowFrame n={3} label="saved · timestamped" w={380} h={340}>
+          <MiniInspiration palette={palette} stage="saved" />
+        </FlowFrame>
+      </div>
+    </div>
+  );
+}
+
+function MiniInspiration({ palette, stage }) {
+  const moods = { empty: 'idle', writing: 'excited', saved: 'happy' };
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: '#FDF6EE' }}>
+      <DesktopBg />
+      <div style={{ position: 'absolute', right: 16, bottom: 20, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+        {stage === 'empty' && (
+          <div style={{ background: '#FFFDF9', borderRadius: 12, padding: '8px 10px', border: '1px solid rgba(74,58,50,0.10)', width: 220,
+            boxShadow: '0 4px 14px rgba(74,58,50,0.10)' }}>
+            <div style={{ fontSize: 10, color: '#9E867A', fontFamily: 'JetBrains Mono, monospace', marginBottom: 4 }}>
+              💭 a little thought…
+            </div>
+            <div style={{ fontSize: 11, color: '#9E867A', fontStyle: 'italic' }}>what's on your mind?</div>
+          </div>
+        )}
+        {stage === 'writing' && (
+          <div style={{ background: '#FFFDF9', borderRadius: 12, padding: '8px 10px', border: '1px solid rgba(74,58,50,0.10)', width: 240,
+            boxShadow: '0 4px 14px rgba(74,58,50,0.10)' }}>
+            <div style={{ fontSize: 10, color: '#9E867A', marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
+              <span>💭 a little thought</span><span style={{ fontFamily: 'JetBrains Mono, monospace' }}>14:22</span>
+            </div>
+            <div style={{ fontSize: 11, color: '#3A2A24', lineHeight: 1.5 }}>
+              mochi should giggle when the clipboard changes — especially if it's a url<span style={{ background:'#E8916B', width:1, display:'inline-block', height:11, marginLeft: 1 }} />
+            </div>
+            <div style={{ display: 'flex', gap: 4, marginTop: 5 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, background: '#FFE3D0', color: '#E8916B', padding: '1px 6px', borderRadius: 6 }}>#idea</span>
+              <span style={{ fontSize: 9, fontWeight: 700, background: '#FFE3D0', color: '#E8916B', padding: '1px 6px', borderRadius: 6 }}>#susu</span>
+            </div>
+          </div>
+        )}
+        {stage === 'saved' && (
+          <div style={{ background: '#C9E4D2', color: '#2C5F3F', padding: '6px 10px', borderRadius: 10, fontSize: 11, fontWeight: 700 }}>
+            saved 💭 · tagged #idea #susu
+          </div>
+        )}
+        <Mochi mood={moods[stage]} palette={palette} size={54} />
+      </div>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 16, background: 'rgba(253,246,238,0.85)' }} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Tweaks panel (bottom-right, in-canvas)
+// ─────────────────────────────────────────────────────────────
+function TweaksPanel({ tweaks, setTweaks, visible }) {
+  if (!visible) return null;
+  return (
+    <div style={{
+      position: 'fixed', right: 20, bottom: 20, zIndex: 1000,
+      background: '#FFFDF9', borderRadius: 16,
+      boxShadow: '0 12px 36px rgba(74,58,50,0.22)',
+      border: '1px solid rgba(74,58,50,0.12)',
+      padding: 14, width: 260, fontFamily: 'Nunito, sans-serif', color: '#3A2A24',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div style={{ fontSize: 14, fontWeight: 800 }}>Tweaks</div>
+        <Mochi mood={tweaks.palette === 'lilac' ? 'excited' : 'happy'} palette={tweaks.palette} size={34} />
+      </div>
+      <div style={{ fontSize: 11, color: '#9E867A', marginBottom: 10 }}>buddy appearance</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 14 }}>
+        {Object.keys(MOCHI_PALETTES).map((p) => (
+          <button key={p} onClick={() => setTweaks({ ...tweaks, palette: p })}
+            style={{
+              padding: 0, border: `2px solid ${tweaks.palette === p ? '#E8916B' : 'transparent'}`,
+              borderRadius: 10, cursor: 'pointer', background: 'transparent',
+            }}>
+            <div style={{
+              width: '100%', aspectRatio: '1', borderRadius: 8,
+              background: `radial-gradient(circle at 40% 35%, ${MOCHI_PALETTES[p].highlight}, ${MOCHI_PALETTES[p].body} 60%, ${MOCHI_PALETTES[p].bodyDeep})`,
+            }} />
+            <div style={{ fontSize: 9.5, color: '#6B5147', fontWeight: 700, marginTop: 3 }}>{p}</div>
+          </button>
+        ))}
+      </div>
+      <div style={{ fontSize: 11, color: '#9E867A', marginBottom: 6 }}>buddy size · {tweaks.buddySize}px</div>
+      <input type="range" min="64" max="140" step="4" value={tweaks.buddySize}
+        onChange={(e) => setTweaks({ ...tweaks, buddySize: Number(e.target.value) })}
+        style={{ width: '100%', accentColor: '#E8916B' }} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// App
+// ─────────────────────────────────────────────────────────────
+function App() {
+  const [tweaks, setTweaks] = React.useState(TWEAK_DEFAULTS);
+  const [editMode, setEditMode] = React.useState(false);
+
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      if (e.data?.type === '__activate_edit_mode') setEditMode(true);
+      if (e.data?.type === '__deactivate_edit_mode') setEditMode(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  React.useEffect(() => {
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: tweaks }, '*');
+  }, [tweaks]);
+
+  return (
+    <>
+      <DesignCanvas>
+        <DCSection id="buddy" title="The buddy" subtitle="A limbless mochi blob with eight expressions. Pure SVG, auto-blinks on idle.">
+          <DCArtboard id="moods" label="moods × 8" width={1840} height={620}>
+            <MoodStrip palette={tweaks.palette} />
+          </DCArtboard>
+          <DCArtboard id="palettes" label="colorways" width={1320} height={500}>
+            <PaletteStrip />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="prototype" title="Live prototype" subtitle="Click the buddy (bottom-right). Try capture, quick thought, archive.">
+          <DCArtboard id="live" label="click the buddy ↘" width={1280} height={800}>
+            <PrototypeScene palette={tweaks.palette} width={1280} height={800} />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="capture" title="Capture flow" subtitle="How a chunk of screen becomes a tidy markdown note.">
+          <DCArtboard id="capture-story" label="storyboard · 5 frames" width={2180} height={500}>
+            <CaptureFlow palette={tweaks.palette} />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="inspiration" title="Inspiration speech-bubble" subtitle="Minimal, pops from the buddy, auto-timestamped.">
+          <DCArtboard id="insp-story" label="storyboard · 3 frames" width={1360} height={500}>
+            <InspirationFlow palette={tweaks.palette} />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="library" title="Timeline archive" subtitle="Captures and ideas live together, grouped by day.">
+          <DCArtboard id="archive" label="timeline · unified feed" width={960} height={640}>
+            <div style={{ padding: 28, background: '#F9F2E5', width: '100%', height: '100%' }}>
+              <TimelineWindow style={{ width: '100%', height: '100%' }} />
+            </div>
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+      <TweaksPanel tweaks={tweaks} setTweaks={setTweaks} visible={editMode} />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

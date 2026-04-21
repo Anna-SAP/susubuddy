@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self';">
+<title>susubuddy — archive</title>
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; width: 100%; height: 100%; overflow: hidden;
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif; color: #3A2A24;
+    -webkit-user-select: none; user-select: none; }
+  #root { width: 100%; height: 100%; }
+  .titlebar { -webkit-app-region: drag; }
+  .titlebar button { -webkit-app-region: no-drag; }
+  .scroll { overflow-y: auto; }
+  .scroll::-webkit-scrollbar { width: 8px; }
+  .scroll::-webkit-scrollbar-thumb { background: rgba(74,58,50,0.18); border-radius: 4px; }
+  @keyframes mochi-breathe { 0%,100% { transform: scaleX(1) scaleY(1); } 50% { transform: scaleX(1.03) scaleY(0.97); } }
+  @keyframes mochi-bounce  { 0%,100% { transform: translateY(0) scaleX(1) scaleY(1); } 30% { transform: translateY(-6px) scaleX(0.96) scaleY(1.04); } 60% { transform: translateY(0) scaleX(1.05) scaleY(0.95); } }
+</style>
+<script src="vendor/react.production.min.js"></script>
+<script src="vendor/react-dom.production.min.js"></script>
+<script src="vendor/babel.min.js"></script>
+<script type="text/babel" src="components.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+function fmtDay(iso) {
+  const d = new Date(iso);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dd = new Date(d); dd.setHours(0,0,0,0);
+  const diff = Math.round((today - dd) / 86400000);
+  if (diff === 0) return { key: 'today', label: 'today', date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) };
+  if (diff === 1) return { key: 'yesterday', label: 'yesterday', date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) };
+  return { key: dd.toISOString().slice(0,10), label: d.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase(), date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) };
+}
+function fmtTime(iso) { return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }); }
+
+function groupByDay(items) {
+  const groups = {};
+  for (const it of items) {
+    const g = fmtDay(it.createdAt);
+    if (!groups[g.key]) groups[g.key] = { ...g, items: [] };
+    groups[g.key].items.push(it);
+  }
+  return Object.values(groups);
+}
+
+function ArchiveApp() {
+  const [items, setItems] = React.useState([]);
+  const [query, setQuery] = React.useState('');
+  const [filter, setFilter] = React.useState('all');
+
+  const load = async () => {
+    const data = await window.susu.listArchive();
+    setItems(data.items || []);
+  };
+  React.useEffect(() => {
+    load();
+    const t = setInterval(load, 3000);
+    return () => clearInterval(t);
+  }, []);
+
+  const filtered = items.filter((it) => {
+    if (filter === 'notes' && it.type !== 'note') return false;
+    if (filter === 'captures' && it.type !== 'capture') return false;
+    if (!query.trim()) return true;
+    const q = query.toLowerCase();
+    const hay = [it.text, it.title, it.preview, ...(it.tags || [])].filter(Boolean).join(' ').toLowerCase();
+    return hay.includes(q);
+  });
+  const groups = groupByDay(filtered);
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: '#FFFDF9',
+      borderRadius: 14,
+      boxShadow: '0 16px 48px rgba(74,58,50,0.18)',
+      border: '1px solid rgba(74,58,50,0.10)',
+      display: 'flex', flexDirection: 'column',
+      overflow: 'hidden',
+    }}>
+      <div className="titlebar" style={{
+        height: 44, background: '#FAF3E8',
+        borderBottom: '1px solid rgba(74,58,50,0.10)',
+        display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10,
+      }}>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={() => window.susu.closeWindow()}
+            title="close"
+            style={{ width: 12, height: 12, borderRadius: 6, background: '#FFB8B8', border: 'none', cursor: 'pointer', padding: 0 }} />
+          <div style={{ width: 12, height: 12, borderRadius: 6, background: '#FFD8B5' }} />
+          <div style={{ width: 12, height: 12, borderRadius: 6, background: '#C9E4D2' }} />
+        </div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <Mochi mood="idle" size={22} palette="lilac" animated={false} />
+          <span style={{ fontSize: 13, fontWeight: 700 }}>susubuddy</span>
+          <span style={{ fontSize: 11, color: '#9E867A' }}>· your little archive</span>
+        </div>
+        <div style={{ fontFamily: 'Consolas, monospace', fontSize: 10, color: '#9E867A' }}>
+          {items.filter((i) => i.type === 'capture').length} captures · {items.filter((i) => i.type === 'note').length} notes
+        </div>
+      </div>
+
+      <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid rgba(74,58,50,0.10)' }}>
+        <div style={{ flex: 1, position: 'relative', background: '#FAF3E8', borderRadius: 10, padding: '7px 12px 7px 32px' }}>
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="#9E867A" strokeWidth="1.6"
+            style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }}>
+            <circle cx="5.5" cy="5.5" r="3.5" /><path d="M8 8l3 3" strokeLinecap="round" />
+          </svg>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="search captures and ideas…"
+            style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%',
+                     fontFamily: 'inherit', fontSize: 12.5, color: '#3A2A24', WebkitUserSelect: 'text', userSelect: 'text' }}
+          />
+        </div>
+        {[['all','all'],['captures','✨ captures'],['notes','💭 notes']].map(([k, l]) => (
+          <button key={k} onClick={() => setFilter(k)} style={{
+            border: `1px solid ${filter === k ? '#E8916B' : 'rgba(74,58,50,0.10)'}`,
+            background: filter === k ? '#FFE3D0' : 'transparent',
+            color: filter === k ? '#E8916B' : '#6B5147',
+            padding: '5px 11px', borderRadius: 12, fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
+          }}>{l}</button>
+        ))}
+      </div>
+
+      <div className="scroll" style={{ flex: 1, padding: '18px 24px' }}>
+        {groups.length === 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', color: '#9E867A' }}>
+            <Mochi mood="sleepy" palette="lilac" size={90} />
+            <div style={{ marginTop: 12, fontWeight: 700, color: '#3A2A24', fontSize: 14 }}>nothing here yet</div>
+            <div style={{ marginTop: 4, fontSize: 12 }}>click the buddy → "quick thought" to save your first note.</div>
+          </div>
+        )}
+        {groups.map((group) => (
+          <div key={group.key} style={{ marginBottom: 22 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 12, paddingBottom: 6, borderBottom: '1px dashed rgba(74,58,50,0.10)' }}>
+              <span style={{ fontSize: 14, fontWeight: 800 }}>{group.label}</span>
+              <span style={{ fontSize: 11, color: '#9E867A', fontFamily: 'Consolas, monospace' }}>{group.date}</span>
+              <div style={{ flex: 1 }} />
+              <span style={{ fontSize: 10, color: '#9E867A' }}>{group.items.length} items</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {group.items.map((item) => <Item key={item.id} item={item} />)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Item({ item }) {
+  if (item.type === 'capture') {
+    return (
+      <div style={{ display: 'flex', gap: 12, background: '#FFFDF9', border: '1px solid rgba(74,58,50,0.10)', borderRadius: 12, padding: '12px 14px' }}>
+        <div style={{ width: 24, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ fontSize: 14 }}>✨</div>
+          <div style={{ fontSize: 9.5, color: '#9E867A', fontFamily: 'Consolas, monospace', marginTop: 4 }}>{fmtTime(item.createdAt)}</div>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 13.5, fontWeight: 700 }}>{item.title || 'capture'}</span>
+            {item.source && <span style={{ fontSize: 10.5, color: '#9E867A', fontFamily: 'Consolas, monospace' }}>{item.source}</span>}
+          </div>
+          <div style={{ fontSize: 12, lineHeight: 1.55, color: '#6B5147', fontFamily: 'Consolas, monospace', whiteSpace: 'pre-wrap',
+                        overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>{item.preview}</div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: 'flex', gap: 12, background: '#FFF9F0', border: '1px solid rgba(74,58,50,0.10)', borderRadius: 12, padding: '11px 14px' }}>
+      <div style={{ width: 24, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ fontSize: 14 }}>💭</div>
+        <div style={{ fontSize: 9.5, color: '#9E867A', fontFamily: 'Consolas, monospace', marginTop: 4 }}>{fmtTime(item.createdAt)}</div>
+      </div>
+      <div style={{ flex: 1, WebkitUserSelect: 'text', userSelect: 'text' }}>
+        <div style={{ fontSize: 13, lineHeight: 1.55, color: '#3A2A24', whiteSpace: 'pre-wrap' }}>{item.text}</div>
+        {item.tags && item.tags.length > 0 && (
+          <div style={{ display: 'flex', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
+            {item.tags.map((t) => (
+              <span key={t} style={{ fontSize: 10.5, fontWeight: 700, padding: '1px 7px', background: '#FFE3D0', color: '#E8916B', borderRadius: 8 }}>{t}</span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const t = setInterval(() => {
+  if (typeof Mochi !== 'undefined') {
+    clearInterval(t);
+    ReactDOM.createRoot(document.getElementById('root')).render(<ArchiveApp />);
+  }
+}, 30);
+</script>
+</body>
+</html>
