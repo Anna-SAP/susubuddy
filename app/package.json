@@ -9,7 +9,7 @@
     "start": "electron .",
     "dist": "electron-builder --win nsis",
     "dist:portable": "electron-builder --win portable",
-    "dist:mac": "electron-builder --mac dmg zip"
+    "dist:mac": "electron-builder --mac --x64 --arm64"
   },
   "devDependencies": {
     "electron": "^33.0.0",
